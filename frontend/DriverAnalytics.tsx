@@ -1,13 +1,35 @@
-import React from "react";
+// src/components/admin/DriverAnalytics.tsx
+import { useEffect, useState } from "react";
+import api from "./src/api/axiosInstance";
+import { Card, CardHeader, CardTitle, CardContent } from "./src/components/ui/card";
 
-const DriverAnalytics = () => {
+interface Props {
+  driverId: string;
+}
+
+const DriverAnalytics = ({ driverId }: Props) => {
+  const [analytics, setAnalytics] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchAnalytics = async () => {
+      const res = await api.get(`/driver/${driverId}`);
+      setAnalytics(res.data.analytics);
+    };
+    fetchAnalytics();
+  }, [driverId]);
+
+  if (!analytics) return <div>Loading analytics...</div>;
+
   return (
-    <div className="p-4 border rounded-lg">
-      <h2 className="text-lg font-semibold">Driver Analytics</h2>
-      <p className="text-sm text-muted-foreground">
-        This is a placeholder for the DriverAnalytics component.
-      </p>
-    </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>Driver Analytics: {analytics.name}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p>Score: {analytics.current_score ?? "N/A"}</p>
+        <p>Feedback Count: {analytics.feedback_count}</p>
+      </CardContent>
+    </Card>
   );
 };
 

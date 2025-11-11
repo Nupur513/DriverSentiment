@@ -30,9 +30,7 @@ def create_app():
     """
     app = Flask(__name__)
     # Enable CORS for frontend on localhost:3000 (React dev server)
-    CORS(app, resources={r"/*": {"origins": [
-        "http://localhost:3000"            # for local React
-    ]}})
+    CORS(app, resources={r"/*": {"origins": "*"}})
     app.config.from_object(Config)
 
     # --- Initialize Services ---
@@ -104,4 +102,4 @@ def create_app():
 # --- Run Server ---
 if __name__ == "__main__":
     app = create_app()
-    app.run(host="127.0.0.1", port=5000, debug=False)
+    app.run(host="0.0.0.0", port=5001, debug=False)

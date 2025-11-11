@@ -54,14 +54,14 @@ def register():
     finally:
         db_session.remove()
 
-@auth_bp.route('/login', methods=['POST'])
+@auth_bp.route("/login", methods=["POST"])
 def login():
     """
     Log in a user and return a JWT access token.
     """
     data = request.get_json()
-    username = data.get('username')
-    password = data.get('password')
+    username = data.get("username")
+    password = data.get("password")
 
     if not username or not password:
         return jsonify({"error": "Username and password are required"}), 400
@@ -70,21 +70,25 @@ def login():
         user = db_session.query(User).filter_by(username=username).first()
 
         if user and user.check_password(password):
-            # Create token with user ID as identity and role in claims
+            # Add role claim
             additional_claims = {"role": user.role.value}
             access_token = create_access_token(
-                identity=str(user.id), 
-                additional_claims=additional_claims
+                identity=str(user.id),
+                additional_claims=additional_claims,
             )
-            
+
             return jsonify({
                 "message": "Login successful",
-                "access_token": access_token
+                "access_token": access_token,
+                "username": user.username,
+                "role": user.role.value,
             }), 200
-        else:
-            return jsonify({"error": "Invalid username or password"}), 401
+
+        return jsonify({"error": "Invalid username or password"}), 401
 
     except Exception as e:
-        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+        print(f"[LOGIN ERROR] {e}")
+        return jsonify({"error": "Internal server error"}), 500
+
     finally:
         db_session.remove()

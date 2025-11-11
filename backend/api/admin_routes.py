@@ -1,14 +1,51 @@
-from flask import Blueprint, jsonify, g
+from flask import Blueprint, jsonify, g, request
 from models.driver import Driver, DriverScore
 from models.feedback import Feedback
 from config import Config
+from functools import wraps
+from flask_jwt_extended import get_jwt, verify_jwt_in_request
 
-admin_bp = Blueprint('admin_bp', __name__)
+admin_bp = Blueprint("admin_bp", __name__)
 
-@admin_bp.route('/config', methods=['GET'])
+# -------------------------
+#  Admin-only access decorator
+# -------------------------
+def admin_required():
+    """
+    Custom decorator that verifies a valid JWT and enforces admin-only access.
+    """
+    def wrapper(fn):
+        @wraps(fn)
+        def decorator(*args, **kwargs):
+            try:
+                # Verify JWT presence and validity
+                verify_jwt_in_request()
+                claims = get_jwt()
+
+                # Require role=admin
+                if claims.get("role") != "admin":
+                    return jsonify({"error": "Access forbidden: Admin role required."}), 403
+
+                # Proceed to protected route
+                return fn(*args, **kwargs)
+
+            except Exception as e:
+                # Missing, expired, or invalid token
+                return jsonify({"error": f"Authentication error: {str(e)}"}), 401
+
+        return decorator
+    return wrapper
+
+
+# -------------------------
+#  Admin Routes
+# -------------------------
+
+@admin_bp.route("/config", methods=["GET"])
+@admin_required()
 def get_config():
     """
-    Endpoint for the Admin UI to fetch system configuration.
+    Fetch system configuration — accessible only to Admin users.
     """
     return jsonify({
         "alert_threshold": Config.ALERT_THRESHOLD,
@@ -16,25 +53,55 @@ def get_config():
         "ema_alpha": Config.EMA_ALPHA,
         "alert_throttle_minutes": Config.ALERT_THROTTLE_MINUTES
     })
-    
-# TODO: Add a POST /config endpoint with authentication to update these.
 
-@admin_bp.route('/driver/<string:driver_id>', methods=['GET'])
+
+@admin_bp.route("/config", methods=["POST"])
+@admin_required()
+def update_config():
+    """
+    Update system configuration — Admin only.
+    """
+    data = request.get_json()
+
+    # Example: update only known keys
+    if "alert_threshold" in data:
+        Config.ALERT_THRESHOLD = data["alert_threshold"]
+    if "ema_alpha" in data:
+        Config.EMA_ALPHA = data["ema_alpha"]
+    if "alert_throttle_minutes" in data:
+        Config.ALERT_THROTTLE_MINUTES = data["alert_throttle_minutes"]
+
+    # Feature flags can be replaced entirely or partially
+    if "feature_flags" in data:
+        Config.FEATURE_FLAGS.update(data["feature_flags"])
+
+    return jsonify({
+        "message": "Configuration updated successfully",
+        "updated_config": {
+            "alert_threshold": Config.ALERT_THRESHOLD,
+            "feature_flags": Config.FEATURE_FLAGS,
+            "ema_alpha": Config.EMA_ALPHA,
+            "alert_throttle_minutes": Config.ALERT_THROTTLE_MINUTES
+        }
+    }), 200
+
+
+@admin_bp.route("/driver/<string:driver_id>", methods=["GET"])
+@admin_required()
 def get_driver_analytics(driver_id):
     """
-    Endpoint for the Admin Dashboard to get all data for a single driver.
+    Get analytics for a single driver — Admin only.
     """
     db = g.db
-    
-    # Get the driver's current score
+
+    # Fetch driver score
     driver_score = db.query(DriverScore).filter(DriverScore.driver_id == driver_id).first()
-    
+
     if not driver_score:
-        # Check if driver exists but just has no score yet
         driver = db.query(Driver).filter(Driver.id == driver_id).first()
         if not driver:
             return jsonify({"error": "Driver not found"}), 404
-        # Driver exists but has no feedback
+
         score_data = {
             "driver_id": driver.id,
             "name": driver.name,
@@ -49,11 +116,11 @@ def get_driver_analytics(driver_id):
             "feedback_count": driver_score.feedback_count
         }
 
-    # Get recent feedback history (e.g., last 20)
+    # Get latest feedback
     feedback_history = db.query(Feedback).filter(
         Feedback.driver_id == driver_id
     ).order_by(Feedback.created_at.desc()).limit(20).all()
-    
+
     return jsonify({
         "analytics": score_data,
         "recent_feedback": [
@@ -64,4 +131,4 @@ def get_driver_analytics(driver_id):
                 "timestamp": f.created_at.isoformat()
             } for f in feedback_history
         ]
-    })
+    }), 200

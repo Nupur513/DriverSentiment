@@ -7,43 +7,57 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import api from "@/api/axiosInstance";
 
 const Auth = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
 
+  // ------------------- LOGIN -------------------
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
-    
+
     const formData = new FormData(e.currentTarget);
     const username = formData.get("username") as string;
     const password = formData.get("password") as string;
 
-    // Mock login - in production, this would call your Flask API
-    setTimeout(() => {
-      localStorage.setItem("token", "mock-jwt-token");
-      localStorage.setItem("username", username);
+    try {
+      const res = await api.post("/auth/login", { username, password });
+
+      localStorage.setItem("token", res.data.access_token);
+      localStorage.setItem("username", res.data.username);
+      localStorage.setItem("role", res.data.role);
+
       toast.success("Login successful!");
       navigate("/feedback");
+    } catch (err: any) {
+      console.error("Login failed:", err);
+      toast.error(err.response?.data?.error || "Login failed. Please try again.");
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
+  // ------------------- REGISTER -------------------
   const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
-    
+
     const formData = new FormData(e.currentTarget);
     const username = formData.get("username") as string;
     const password = formData.get("password") as string;
     const role = formData.get("role") as string;
 
-    // Mock registration - in production, this would call your Flask API
-    setTimeout(() => {
-      toast.success("Registration successful! Please login.");
+    try {
+      const res = await api.post("/auth/register", { username, password, role });
+      toast.success(res.data.message || "Registration successful! Please log in.");
+    } catch (err: any) {
+      console.error("Registration failed:", err);
+      toast.error(err.response?.data?.error || "Registration failed. Try again.");
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -61,54 +75,34 @@ const Auth = () => {
               <TabsTrigger value="login">Login</TabsTrigger>
               <TabsTrigger value="register">Register</TabsTrigger>
             </TabsList>
-            
+
+            {/* ---------- LOGIN FORM ---------- */}
             <TabsContent value="login">
               <form onSubmit={handleLogin} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="login-username">Username</Label>
-                  <Input
-                    id="login-username"
-                    name="username"
-                    placeholder="Enter your username"
-                    required
-                  />
+                  <Input id="login-username" name="username" placeholder="Enter your username" required />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="login-password">Password</Label>
-                  <Input
-                    id="login-password"
-                    name="password"
-                    type="password"
-                    placeholder="Enter your password"
-                    required
-                  />
+                  <Input id="login-password" name="password" type="password" placeholder="Enter your password" required />
                 </div>
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? "Logging in..." : "Login"}
                 </Button>
               </form>
             </TabsContent>
-            
+
+            {/* ---------- REGISTER FORM ---------- */}
             <TabsContent value="register">
               <form onSubmit={handleRegister} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="register-username">Username</Label>
-                  <Input
-                    id="register-username"
-                    name="username"
-                    placeholder="Choose a username"
-                    required
-                  />
+                  <Input id="register-username" name="username" placeholder="Choose a username" required />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="register-password">Password</Label>
-                  <Input
-                    id="register-password"
-                    name="password"
-                    type="password"
-                    placeholder="Choose a password"
-                    required
-                  />
+                  <Input id="register-password" name="password" type="password" placeholder="Choose a password" required />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="role">Role</Label>
