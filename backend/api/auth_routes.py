@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 from sqlalchemy.exc import IntegrityError
 from flask_jwt_extended import create_access_token
 from models.user import User, UserRole
-from backend.database import db_session
+from database import db_session
 
 # Create a Blueprint for authentication routes
 auth_bp = Blueprint('auth_api', __name__)

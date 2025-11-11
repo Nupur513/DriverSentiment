@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from models.driver import Driver, DriverScore
-from backend.config import Config
+from config import Config
 
 class ScoringService:
     """

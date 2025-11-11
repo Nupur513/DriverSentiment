@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, g
 from models.driver import Driver, DriverScore
 from models.feedback import Feedback
-from backend.config import Config
+from config import Config
 
 admin_bp = Blueprint('admin_bp', __name__)
 

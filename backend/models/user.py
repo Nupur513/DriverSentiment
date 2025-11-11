@@ -1,7 +1,7 @@
 import enum
 import bcrypt
 from sqlalchemy import Column, Integer, String, Enum
-from backend.database import Base
+from database import Base
 
 class UserRole(enum.Enum):
     """

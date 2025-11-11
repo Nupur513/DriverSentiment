@@ -2,7 +2,7 @@ from sqlalchemy import Column, String, Integer, Text, DateTime, Float, Enum
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from sqlalchemy import ForeignKey
-from backend.database import Base
+from database import Base
 import enum
 
 class FeedbackEntityType(enum.Enum):

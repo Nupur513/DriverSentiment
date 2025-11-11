@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 from models.driver import Driver
 from models.alert import AlertLog
-from backend.config import Config
+from config import Config
 
 class AlertingService:
     """
