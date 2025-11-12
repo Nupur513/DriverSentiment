@@ -6,10 +6,10 @@ from flask import Flask, jsonify, g
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 
-# --- Add backend path to sys.path ---
+
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-# --- Local imports ---
+
 from config import Config
 from database import init_db, db_session
 from services.feedback_processor import FeedbackProcessor
@@ -17,23 +17,20 @@ from services.queue_service import InMemoryQueue
 from services.sentiment_service import SimpleSentimentService
 from services.scoring_service import ScoringService
 from services.alerting_service import AlertingService
-
-# --- Logging Setup ---
+ 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 log = logging.getLogger(__name__)
 
-# --- App Factory ---
+
 def create_app():
-    """
-    Application factory function.
-    """
+    
     app = Flask(__name__)
     # Enable CORS for frontend on localhost:3000 (React dev server)
     CORS(app, resources={r"/*": {"origins": "*"}})
     app.config.from_object(Config)
 
-    # --- Initialize Services ---
+    
     log.info("Initializing services...")
     queue_service = InMemoryQueue()
     sentiment_service = SimpleSentimentService()
@@ -41,7 +38,7 @@ def create_app():
     alerting_service = AlertingService()
     db_session_factory = db_session
 
-    # --- Start Background Worker ---
+    
     processor = FeedbackProcessor(
         db_session_factory=db_session_factory,
         queue_service=queue_service,
@@ -52,15 +49,15 @@ def create_app():
     processor.start_worker_thread()
     log.info("Background feedback processing worker started.")
 
-    # --- JWT Setup ---
+    
     jwt = JWTManager(app)
     log.info("JWTManager initialized.")
 
-    # --- Database Initialization ---
+    
     with app.app_context():
         init_db()
 
-    # --- Register Blueprints ---
+    
     log.info("Registering API blueprints...")
 
     # Import routes from backend/api
@@ -76,12 +73,12 @@ def create_app():
 
     log.info("Blueprints registered successfully.")
 
-    # --- Health Check ---
+    
     @app.route("/health")
     def health_check():
         return jsonify({"status": "healthy"}), 200
 
-    # --- Before/After Request Handlers ---
+    
     @app.before_request
     def before_request():
         g.db = db_session
@@ -90,7 +87,7 @@ def create_app():
     def shutdown_session(exception=None):
         db_session.remove()
 
-    # --- Graceful Exit ---
+    
     @atexit.register
     def shutdown_worker():
         log.info("Shutting down feedback worker...")
@@ -103,3 +100,4 @@ def create_app():
 if __name__ == "__main__":
     app = create_app()
     app.run(host="0.0.0.0", port=5001, debug=False)
+
